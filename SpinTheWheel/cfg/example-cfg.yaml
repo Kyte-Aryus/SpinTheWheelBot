@@ -1,0 +1,46 @@
+bot-token: '<TOKEN>'
+command-prefix: '&'
+big-red-button:
+    message: "**YOU WILL BE SILENCED FOR TWO MINUTES IF YOU PRESS IT**"
+    role-id: <Role that restricts posting and/or voice chat>
+    active-time: 300000
+    role-time: 120000
+    is-silencing-role: true
+    move-user-back-after-silence: true
+
+spin:
+    # For spin penalties if people spin too much (reduces the chance people script this)
+    spin-penalty-reset: 120000
+    consecutive-spins-before-penalty: 5
+    
+    # Consolation Role
+    consolation:
+        message: "Better luck next time"
+        description: "Random silence between 60 and 120 seconds"
+        role-id: <Role that restricts posting and/or voice chat>
+        role-time: 90000
+        role-time-variation: 30000
+        is-silencing-role: true
+        move-user-back-after-silence: true
+    
+    prize-one:
+        name: "Grand Prize"
+        description: "The grand prize role!"
+        type: "role"
+        image-resource: '<path to image to display with message>'
+        role-id: <Grand prize role>
+        message: "**CONGRATULATIONS**: You've won the grand prize!!"
+        odds: 1000
+        is-silencing-role: false
+        
+    prize-two:
+        name: "Grand Loser"
+        description: "A whopping 30 minutes silence"
+        type: "role"
+        image-resource: '<path to image to display with message'
+        role-id: <Grand loser role>
+        message: "**BANNED**"
+        odds: 500
+        role-time: 1800000
+        is-silencing-role: true
+        move-user-back-after-silence: false

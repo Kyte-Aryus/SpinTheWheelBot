@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SpinTheWheel": {
+      "commandName": "Project",
+      "commandLineArgs": "-d -c cfg.yaml"
+    }
+  }
+}
