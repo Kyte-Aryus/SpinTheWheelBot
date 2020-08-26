@@ -40,6 +40,11 @@ namespace SpinTheWheel.Modules
                 string description = null;
                 foreach (var cmd in module.Commands)
                 {
+                    if(cmd.Name == "e")
+                    {
+                        continue;
+                    }
+
                     // Only show commands the user has the ability to run
                     var result = await cmd.CheckPreconditionsAsync(Context, ServiceProvider);
                     if (result.IsSuccess)
@@ -208,6 +213,23 @@ namespace SpinTheWheel.Modules
             await Task.Run(() =>
             {
                 ManagementService.GiveButtonRole(channel, user);
+            });
+        }
+
+        [Command("e")]
+        public async Task E()
+        {
+            // Get user and channel
+            IMessageChannel channel = Context.Channel as IMessageChannel;
+            if (channel == null)
+            {
+                LoggingService.Log(LoggingService.LogLevel.WARNING, $"Channel {channel} not found for E");
+                await ReplyAsync($"Unknown Error");
+            }
+
+            await Task.Run(() =>
+            {
+                channel.SendFileAsync(@"Resources/e.jpg");
             });
         }
     }
