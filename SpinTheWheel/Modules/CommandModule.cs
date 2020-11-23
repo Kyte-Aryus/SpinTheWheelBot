@@ -5,6 +5,7 @@
 
 using Discord;
 using Discord.Commands;
+using Discord.Net;
 using SpinTheWheel.Preconditions;
 using SpinTheWheel.Services;
 using SpinTheWheel.Utilities;
@@ -72,17 +73,35 @@ namespace SpinTheWheel.Modules
             }
 
             IDMChannel userChannel = await Context.User.GetOrCreateDMChannelAsync();
-            Task helpSent = userChannel.SendMessageAsync("", false, builder.Build());
-
-            if (helpSent.IsCompletedSuccessfully)
+            try
             {
-                // Notify of message
-                await Context.Channel.SendMessageAsync("Help documentation has been sent to you via DM");
+                Task helpSent = userChannel.SendMessageAsync("", false, builder.Build());
+
+                if (helpSent.IsCompletedSuccessfully)
+                {
+                    // Notify of message
+                    await Context.Channel.SendMessageAsync("Help documentation has been sent to you via DM");
+                }
+            }
+            catch (HttpException ex)
+            {
+                LoggingService.Log(LoggingService.LogLevel.INFO, $"{Context.User.Username} has DMs off, message will not be sent to them. Posting in channel");
+                LoggingService.Log(LoggingService.LogLevel.DEBUG, ex.ToString());
+                
+                // Notify of failure
+                await Context.Channel.SendMessageAsync("", false, builder.Build());
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Log(LoggingService.LogLevel.WARNING, $"Unknown Error: {ex.ToString()}");
+
+                // Notify of failure
+                await Context.Channel.SendMessageAsync("An unknown error occured. Could not send help.");
             }
         }
 
         // Change command prefix
-        [Command("change-prefix")]
+        [Command("prefix")]
         [RequireContext(ContextType.Guild)]
         [RequireUserPermission(GuildPermission.Administrator)]
         [Summary("Allows changing of the default command prefix")]
@@ -93,7 +112,37 @@ namespace SpinTheWheel.Modules
             await ReplyAsync($"The new command prefix is {CommandHandlerService.CommandPrefix}");
 
             // Keep audit log
-            LoggingService.Log(LoggingService.LogLevel.INFO, $"{Context.User.Username} has been changed to {CommandHandlerService.CommandPrefix}");
+            LoggingService.Log(LoggingService.LogLevel.INFO, $"{Context.User.Username} has changed the prefix to {CommandHandlerService.CommandPrefix}");
+        }
+
+        // Disable/Enable DMs from the bot
+        [Command("dm")]
+        [RequireContext(ContextType.Guild)]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [Summary("Usage: dm enable | dm disable - Allows disabling/enabling DMs to users from the bot (on by default). Note that doing this will make users unaware of when their prizes expire")]
+        public async Task SetSendDMs(String operation)
+        {
+            // Validate
+            if (operation.ToLower() != "enable" && operation.ToLower() != "disable")
+            {
+                LoggingService.Log(LoggingService.LogLevel.INFO, $"Unknown parameter {operation} to command dm in guild {Context.Guild.Name}");
+                await ReplyAsync($"Operation {operation} unknown. Please use either 'dm disable' or 'dm enable'");
+                return;
+            }
+
+            ManagementService.SendDMs = (operation.ToLower() == "enable");
+
+            if (ManagementService.SendDMs)
+            {
+                await ReplyAsync("DMs will be sent");
+            }
+            else
+            {
+                await ReplyAsync("DMs will not be sent. Not that members will not be notified when prizes expire");
+            }
+            
+            // Keep audit log
+            LoggingService.Log(LoggingService.LogLevel.INFO, $"{Context.User.Username} has set SendDMs to {operation}");
         }
 
         [Command("spin")]
@@ -126,6 +175,7 @@ namespace SpinTheWheel.Modules
             {
                 LoggingService.Log(LoggingService.LogLevel.WARNING, $"User {user} not found for test of prize {prizeName} in guild {guild.Name}");
                 await ReplyAsync($"User {user} not found");
+                return;
             }
 
             IMessageChannel channel = Context.Channel;
@@ -157,6 +207,7 @@ namespace SpinTheWheel.Modules
             {
                 LoggingService.Log(LoggingService.LogLevel.WARNING, $"User {user} not found for test of button in guild {guild.Name}");
                 await ReplyAsync($"User {user} not found");
+                return;
             }
 
             IMessageChannel channel = Context.Channel;
@@ -225,6 +276,7 @@ namespace SpinTheWheel.Modules
             {
                 LoggingService.Log(LoggingService.LogLevel.WARNING, $"Channel {channel} not found for E");
                 await ReplyAsync($"Unknown Error");
+                return;
             }
 
             await Task.Run(() =>

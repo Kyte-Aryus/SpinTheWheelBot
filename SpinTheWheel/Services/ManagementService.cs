@@ -19,6 +19,7 @@ using System.Timers;
 using System.Threading.Tasks;
 using YamlDotNet.RepresentationModel;
 using System.ComponentModel;
+using Discord.Net;
 
 namespace SpinTheWheel
 {
@@ -61,6 +62,9 @@ namespace SpinTheWheel
 
         // Random number generator
         private readonly Random _random;
+
+        // Whether or not to send DMs
+        public static Boolean SendDMs { get; set; } = true;
 
         // Needed services
         private readonly DiscordSocketClient _client;
@@ -730,10 +734,10 @@ namespace SpinTheWheel
             }
 
             // Remove from list
-            _membersWithButtonRole.Add(user.Id);
+            _membersWithButtonRole.Remove(user.Id);
 
             // Message user about silence being up if allowed
-            await user.SendMessageAsync("Your Big Red Button role has been lifted!");
+            SendMessageToUserAsync(user, "Your Big Red Button role has been lifted!");
         }
 
 
@@ -821,6 +825,12 @@ namespace SpinTheWheel
             // Roll for rewards. Note that rolling multiple times for each doesn't change the
             // chances in any real way. While there may be some chance lost due to the seeding
             // it's close enough for our purposes and is more beneficial for logging
+
+            // This isn't a perfect chance because the first prize will trigger a break so prizes defined earlier
+            // in the config are checked first. This means that you should arrange a config file such that
+            // the lowest chance prizes are first if you want to get as close as possible to stastical random.
+            // However this is not enforced and left in intentionally, if you want to abuse this limitation
+            // in your configuration, you are welcome to
 
             // We can compute these by saying any number is equally likely, therefore we can just compare to 0
             bool wonPrize = false;
@@ -1005,8 +1015,8 @@ namespace SpinTheWheel
                 });
             }
 
-            // Message user about silence being up if allowed
-            await user.SendMessageAsync($"Your prize role for {prize.Name} has been removed!");
+            // Message user about prize being removed
+            SendMessageToUserAsync(user, $"Your prize role for {prize.Name} has been removed!");
 
             // If spin penalty is enabled, start the timer to remove it
             if(prize.Name == _consolationPrize.Name && _enableConsecutiveSpinPenalty)
@@ -1015,7 +1025,33 @@ namespace SpinTheWheel
                 _userTimers[user.Id].Start();
             }
         }
-        
+
+        #endregion
+
+        #region Utilities
+
+        internal async void SendMessageToUserAsync(IUser user, String message)
+        {
+            if(!SendDMs)
+            {
+                return;
+            }
+
+            try
+            {
+                await user.SendMessageAsync(message);
+            }
+            catch (HttpException ex)
+            {
+                _logger.Log(LoggingService.LogLevel.INFO, $"{user.Username} has DMs off, message will not be sent to them");
+                _logger.Log(LoggingService.LogLevel.DEBUG, ex.ToString());
+            }
+            catch (Exception ex)
+            {
+                _logger.Log(LoggingService.LogLevel.WARNING, $"Unknown Error: {ex.ToString()}");
+            }
+        }
+
         #endregion
     }
 }
